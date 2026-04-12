@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Agenda Telefònica</title>
+
+  <!-- PWA / Add to Home Screen -->
+  <meta name="application-name" content="Agenda Hospital" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Agenda" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0f1117" />
+
+  <!-- PWA Manifest inline -->
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Agenda+Telef%C3%B2nica+Hospital%22%2C%22short_name%22%3A%22Agenda%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230f1117%22%2C%22theme_color%22%3A%22%230f1117%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg+xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'+viewBox%3D'0+0+100+100'%253E%253Ctext+y%3D'.9em'+font-size%3D'90'%253E%25F0%259F%2593%258B%253C%2Ftext%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D" />
+
+  <!-- Apple touch icon via SVG data URI -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f1117'/><text y='.85em' x='10' font-size='75'>📋</text></svg>" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --surface2:  #22263a;
+      --border:    #2e3350;
+      --accent:    #3b82f6;
+      --accent2:   #60a5fa;
+      --warn:      #f59e0b;
+      --ok:        #10b981;
+      --txt:       #e2e8f0;
+      --muted:     #64748b;
+      --radius:    10px;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans', sans-serif;
+      /* Safe areas for notch/home-bar */
+      --sat: env(safe-area-inset-top, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+      --sal: env(safe-area-inset-left, 0px);
+      --sar: env(safe-area-inset-right, 0px);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { height: 100%; -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: var(--sans); background: var(--bg); color: var(--txt);
+      -webkit-font-smoothing: antialiased; height: 100%;
+      /* Prevent overscroll bounce on iOS */
+      overscroll-behavior: none;
+    }
+
+    /* ── App shell ─────────────────────────────────────────── */
+    .app {
+      display: flex; flex-direction: column;
+      height: 100dvh;
+      padding-top: var(--sat);
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    .header {
+      flex-shrink: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 14px 8px;
+    }
+    .header-row1 {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .brand { display: flex; align-items: center; gap: 8px; }
+    .brand-icon { font-size: 20px; line-height: 1; }
+    .brand-text h1 { font-size: 16px; font-weight: 700; }
+    .brand-text small { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+    #addBtn {
+      background: var(--accent); border: none; border-radius: var(--radius);
+      color: #fff; font-family: var(--sans); font-size: 13px; font-weight: 600;
+      padding: 8px 14px; cursor: pointer; display: flex; align-items: center; gap: 5px;
+      min-height: 40px; -webkit-tap-highlight-color: transparent;
+    }
+    #addBtn:active { background: var(--accent2); }
+
+    /* Search */
+    .search-wrap { position: relative; }
+    .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+    #searchInput {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--txt); font-family: var(--sans);
+      font-size: 16px; /* 16px prevents iOS zoom on focus */
+      padding: 10px 38px 10px 36px; outline: none; transition: border-color .15s;
+      -webkit-appearance: none; appearance: none;
+    }
+    #searchInput::placeholder { color: var(--muted); }
+    #searchInput:focus { border-color: var(--accent); }
+    #clearBtn {
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      background: var(--border); border: none; border-radius: 6px; color: var(--muted);
+      font-size: 12px; padding: 5px 8px; cursor: pointer; display: none;
+      min-width: 32px; min-height: 32px; display: none; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #clearBtn.visible { display: flex; }
+
+    /* ── Category tabs (horizontal scroll) ─────────────────── */
+    .cat-bar {
+      flex-shrink: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto; overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      display: flex; gap: 4px;
+      padding: 8px 12px;
+    }
+    .cat-bar::-webkit-scrollbar { display: none; }
+
+    .cat-pill {
+      flex-shrink: 0; display: flex; align-items: center; gap: 5px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 999px; color: var(--muted);
+      font-family: var(--sans); font-size: 13px; font-weight: 500;
+      padding: 6px 12px; cursor: pointer; white-space: nowrap;
+      -webkit-tap-highlight-color: transparent; transition: background .1s, color .1s;
+      min-height: 34px;
+    }
+    .cat-pill.active {
+      background: rgba(59,130,246,.18); border-color: rgba(59,130,246,.4);
+      color: var(--accent2); font-weight: 700;
+    }
+    .cat-pill:active { opacity: .7; }
+    .cat-count-badge {
+      font-family: var(--mono); font-size: 10px;
+      background: rgba(255,255,255,.08); border-radius: 999px;
+      padding: 1px 5px; color: var(--muted);
+    }
+    .cat-pill.active .cat-count-badge { background: rgba(59,130,246,.25); color: var(--accent2); }
+
+    /* Stats bar */
+    .stats-bar {
+      flex-shrink: 0;
+      padding: 6px 14px;
+      font-size: 12px; color: var(--muted); font-family: var(--mono);
+    }
+
+    /* ── Scrollable list ────────────────────────────────────── */
+    .list-area {
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 8px 12px;
+      padding-bottom: calc(8px + var(--sab));
+    }
+    .list-area::-webkit-scrollbar { width: 3px; }
+    .list-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── Card ───────────────────────────────────────────────── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 13px 14px;
+      display: flex; flex-direction: column; gap: 8px;
+      margin-bottom: 8px;
+      transition: border-color .15s;
+    }
+    .card.user-card { border-color: rgba(245,158,11,.35); }
+
+    .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .card-name { font-size: 14px; font-weight: 700; color: var(--txt); line-height: 1.3; flex: 1; }
+    .card-badges { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+    .cat-badge {
+      font-size: 10px; font-family: var(--mono); background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 4px; padding: 3px 6px;
+      color: var(--muted); text-transform: uppercase; letter-spacing: .4px; white-space: nowrap;
+    }
+    .user-card .cat-badge { color: var(--warn); border-color: rgba(245,158,11,.3); }
+    .card.edited-card { border-color: rgba(16,185,129,.3); }
+    .card.edited-card:hover { border-color: var(--ok); }
+    .card.edited-card .cat-badge { color: var(--ok); border-color: rgba(16,185,129,.3); }
+    .card-note { font-size: 11px; color: var(--warn); font-family: var(--mono); }
+
+    .phones { display: flex; gap: 6px; flex-wrap: wrap; }
+    .phone-num {
+      font-family: var(--mono); font-size: 16px; font-weight: 600; color: var(--accent2);
+      background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.25);
+      border-radius: 6px; padding: 5px 11px; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .1s;
+      /* Make tap targets comfortable */
+      min-height: 40px; display: flex; align-items: center;
+      user-select: all;
+    }
+    .phone-num:active { background: rgba(59,130,246,.25); }
+    .phone-num.copied { color: var(--ok); background: rgba(16,185,129,.12); border-color: var(--ok); }
+
+    .card-actions { display: flex; gap: 4px; }
+    .icon-btn {
+      background: none; border: none; color: var(--muted); font-size: 15px;
+      cursor: pointer; padding: 4px 7px; border-radius: 6px;
+      -webkit-tap-highlight-color: transparent;
+      min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center;
+    }
+    .icon-btn:active { background: var(--surface2); }
+    .icon-btn.edit:active { color: var(--accent2); }
+    .icon-btn.del:active  { color: #ef4444; }
+
+    /* ── Highlight ──────────────────────────────────────────── */
+    .hl { background: rgba(251,191,36,.22); color: #fbbf24; border-radius: 3px; padding: 0 2px; }
+
+    /* ── Empty ──────────────────────────────────────────────── */
+    .empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+    .empty big { font-size: 36px; display: block; margin-bottom: 12px; }
+    .empty p { font-size: 14px; }
+
+    /* ── Modal ──────────────────────────────────────────────── */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,.7);
+      align-items: flex-end; /* Bottom sheet on mobile */
+      justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      background: var(--surface); border-top: 1px solid var(--border);
+      border-radius: 16px 16px 0 0;
+      padding: 20px 18px;
+      padding-bottom: calc(20px + var(--sab));
+      width: 100%; max-width: 600px;
+      box-shadow: 0 -12px 40px rgba(0,0,0,.5);
+      animation: slideUp .2s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    .modal-drag { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+    .modal h2 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 5px; font-family: var(--mono); text-transform: uppercase; letter-spacing: .5px; }
+    .field input, .field select {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--txt); font-family: var(--sans);
+      font-size: 16px; padding: 11px 13px; outline: none;
+      -webkit-appearance: none; appearance: none;
+      transition: border-color .15s;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent); }
+    .field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+    .field small { display: block; font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+    .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+    .modal-actions button {
+      flex: 1; font-family: var(--sans); font-size: 15px; font-weight: 600;
+      padding: 13px; border-radius: var(--radius); border: none; cursor: pointer;
+      min-height: 48px; -webkit-tap-highlight-color: transparent;
+    }
+    #cancelModal { background: var(--surface2); color: var(--muted); }
+    #cancelModal:active { color: var(--txt); }
+    #saveModal { background: var(--accent); color: #fff; }
+    #saveModal:active { background: var(--accent2); }
+
+    /* ── Toast ──────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: calc(20px + var(--sab)); left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: #1e293b; border: 1px solid var(--border); color: var(--txt);
+      font-size: 13px; padding: 10px 18px; border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.45); opacity: 0;
+      transition: opacity .2s, transform .2s; pointer-events: none; z-index: 300;
+      font-family: var(--mono); white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Desktop adjustments (≥ 720px) ─────────────────────── */
+    @media (min-width: 720px) {
+      .app { max-width: 900px; margin: 0 auto; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+      .list-area { padding-bottom: 20px; }
+      .cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .cards-grid .card { margin-bottom: 0; }
+      .modal-backdrop { align-items: center; }
+      .modal { border-radius: 14px; max-width: 440px; padding-bottom: 22px; }
+      .modal-drag { display: none; }
+    }
+    @media (min-width: 1100px) {
+      .cards-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-row1">
+      <div class="brand">
+        <div class="brand-icon">📋</div>
+        <div class="brand-text">
+          <h1>Agenda Telefònica</h1>
+          <small>Directori · Hospital</small>
+        </div>
+      </div>
+      <button id="addBtn" aria-label="Afegir nou contacte">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nou
+      </button>
+    </div>
+    <div class="search-wrap">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="searchInput" type="search" inputmode="search" autocomplete="off" spellcheck="false"
+             placeholder="Cerca servei, departament o número…" />
+      <button id="clearBtn" aria-label="Netejar cerca">✕</button>
+    </div>
+  </header>
+
+  <!-- Category tabs -->
+  <nav class="cat-bar" id="catBar" aria-label="Filtres per categoria"></nav>
+
+  <!-- Stats -->
+  <div class="stats-bar" id="statsBar">—</div>
+
+  <!-- Cards -->
+  <main class="list-area" role="main">
+    <div class="cards-grid" id="grid"></div>
+  </main>
+</div>
+
+<!-- Bottom sheet modal -->
+<div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <h2 id="modalTitle">Nou contacte</h2>
+    <div class="field">
+      <label for="fName">Nom / Servei</label>
+      <input id="fName" type="text" autocomplete="off" placeholder="Ex: REUMATOLOGIA" />
+    </div>
+    <div class="field">
+      <label for="fPhone">Número(s)</label>
+      <input id="fPhone" type="text" inputmode="numeric" autocomplete="off" placeholder="Ex: 4321 o 4321 / 4322" />
+      <small>Separa múltiples extensions amb / o coma</small>
+    </div>
+    <div class="field">
+      <label for="fNote">Nota (opcional)</label>
+      <input id="fNote" type="text" autocomplete="off" placeholder="Ex: Horari matí, guardia, etc." />
+    </div>
+    <div class="field">
+      <label for="fCat">Categoria</label>
+      <select id="fCat"></select>
+    </div>
+    <div class="modal-actions">
+      <button id="cancelModal">Cancel·lar</button>
+      <button id="saveModal">Desar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ─── Data ─────────────────────────────────────────────────────────────────────
+const builtinData = [
+  // Urgències
+  { name:"SUPER. URG (NÚRIA)",          phones:["2638","4334"],           category:"Urgències" },
+  { name:"SUPER. GENERAL",              phones:["4332"],                   category:"Urgències" },
+  { name:"CAP DE GUARDIA",              phones:["6116"],                   category:"Urgències" },
+  { name:"CAP SERVEI (GISPI)",          phones:["2320","4475"],            category:"Urgències" },
+  { name:"REANIMACIÓ",                  phones:["2412","2445"],            category:"Urgències" },
+  { name:"CATÀSTROFES",                 phones:["2297"],                   category:"Urgències" },
+  // UCI
+  { name:"SUPER UCI",                   phones:["4457"],                   category:"UCI" },
+  { name:"UCI/UCO",                     phones:["2484","2400"],            category:"UCI" },
+  { name:"UCI RESIDENT",                phones:["4436"],                   category:"UCI" },
+  { name:"UCI ADJUNT",                  phones:["4321","4345"],            category:"UCI" },
+  { name:"ADJ/RESI UCI",               phones:["4345","4321","4436"],     category:"UCI" },
+  { name:"UCI SANTA CATE",             phones:["667079969"],              category:"UCI" },
+  { name:"UIC",                         phones:["4470"],                   category:"UCI" },
+  // Infermeria
+  { name:"INF. TRIATGE",                phones:["4419","4710"],            category:"Infermeria" },
+  { name:"INF. CRÍTICS",                phones:["4437"],                   category:"Infermeria" },
+  { name:"INF. E.R.R",                  phones:["4434"],                   category:"Infermeria" },
+  { name:"INF. CIRCUIT RÀPID",          phones:["4472"],                   category:"Infermeria" },
+  { name:"INF. TRAUMA",                 phones:["4471"],                   category:"Infermeria" },
+  { name:"INF. URG PEDIÀTRICA",         phones:["4429"],                   category:"Infermeria" },
+  { name:"INF. OSTOMIES",               phones:["4391"],                   category:"Infermeria" },
+  { name:"INF. PREVENTIVA",             phones:["4383"],                   category:"Infermeria" },
+  { name:"INF. CLÍNICA UCA",            phones:["4599"],                   category:"Infermeria" },
+  // Zeladors
+  { name:"ZEL. TRAUMA",                 phones:["4454"],                   category:"Zeladors" },
+  { name:"ZEL. OBSERVACIÓ",             phones:["4456"],                   category:"Zeladors" },
+  { name:"ZEL. BOXS",                   phones:["4455"],                   category:"Zeladors" },
+  { name:"ZEL. TRIATGE",                phones:["4453"],                   category:"Zeladors" },
+  { name:"ZEL. PEDIÀTRIA",              phones:["4428"],                   category:"Zeladors" },
+  { name:"ZEL. ERR",                    phones:["4435"],                   category:"Zeladors" },
+  // Adjunts
+  { name:"ADJUNT A",                    phones:["4449"],                   category:"Adjunts" },
+  { name:"ADJUNT B",                    phones:["4450"],                   category:"Adjunts" },
+  { name:"ADJUNT C",                    phones:["4380"],                   category:"Adjunts" },
+  { name:"ADJUNT D",                    phones:["4452"],                   category:"Adjunts" },
+  { name:"ADJUNT R",                    phones:["4451"],                   category:"Adjunts" },
+  { name:"ADJUNT P / S",                phones:["4356","4594"],            category:"Adjunts" },
+  { name:"ADJUNT L",                    phones:["4570"],                   category:"Adjunts" },
+  { name:"ADJUNT TRAUMA",               phones:["4308"],                   category:"Adjunts" },
+  { name:"ADJUNT INTERNA",              phones:["4304"],                   category:"Adjunts" },
+  { name:"ADJUNT NEURO",                phones:["4414"],                   category:"Adjunts" },
+  { name:"ADJUNT GINE",                 phones:["4310","4311"],            category:"Adjunts" },
+  { name:"ADJUNT CIRURGIA",             phones:["4307","4306"],            category:"Adjunts" },
+  { name:"ADJUNT PEDIATRIA",            phones:["4300"],                   category:"Adjunts" },
+  { name:"ADJUNT NEUROCIRURGIA",        phones:["4325"],                   category:"Adjunts" },
+  { name:"ADJUNT DIGESTIU",             phones:["4413"],                   category:"Adjunts" },
+  { name:"ADJUNT ONCO",                 phones:["4316"],                   category:"Adjunts" },
+  { name:"ADJUNT HEMATO",               phones:["4322"],                   category:"Adjunts" },
+  { name:"ADJUNT PNEUMO",               phones:["4409"],                   category:"Adjunts" },
+  { name:"ADJUNT UROLOGIA",             phones:["4329"],                   category:"Adjunts" },
+  { name:"ADJUNT NEFRO",                phones:["4323"],                   category:"Adjunts" },
+  { name:"ADJUNT C. TORÀCICA",          phones:["4390"],                   category:"Adjunts" },
+  { name:"ADJUNT VASCULAR",             phones:["4324"],                   category:"Adjunts" },
+  { name:"ADJUNT DERMATO",              phones:["4261","2479"],            category:"Adjunts" },
+  { name:"ADJUNT C. PLÀSTICA",          phones:["2705","4263"],            category:"Adjunts" },
+  { name:"ADJUNT ORL",                  phones:["4327"],                   category:"Adjunts" },
+  // Residents
+  { name:"RESI TRAUMA",                 phones:["4309"],                   category:"Residents" },
+  { name:"RESI INTERNA",                phones:["4333"],                   category:"Residents" },
+  { name:"RESI NEURO",                  phones:["4386"],                   category:"Residents" },
+  { name:"RESI GINE",                   phones:["4311","4476"],            category:"Residents" },
+  { name:"RESI CIRURGIA",               phones:["4303"],                   category:"Residents" },
+  { name:"RESI PEDIATRIA",              phones:["4313"],                   category:"Residents" },
+  { name:"RESI URG",                    phones:["4556"],                   category:"Residents" },
+  // Zones
+  { name:"TRAUMA",                      phones:["2631"],                   category:"Zones" },
+  { name:"CONTROL A",                   phones:["2280"],                   category:"Zones" },
+  { name:"CONTROL B",                   phones:["2392"],                   category:"Zones" },
+  { name:"CONTROL C",                   phones:["2337"],                   category:"Zones" },
+  { name:"CRÍTICS",                     phones:["2566"],                   category:"Zones" },
+  { name:"BUTAQUES",                    phones:["4290"],                   category:"Zones" },
+  { name:"TRIATGE",                     phones:["2655"],                   category:"Zones" },
+  { name:"OBSERVACIÓ METGE",            phones:["4291"],                   category:"Zones" },
+  { name:"OBSERVACIÓ INF",              phones:["2362"],                   category:"Zones" },
+  // Consultes
+  { name:"CONSULTA 1",                  phones:["2905"],                   category:"Consultes" },
+  { name:"CONSULTA 2",                  phones:["2904"],                   category:"Consultes" },
+  { name:"CONSULTA 3 / ORL",           phones:["2903"],                   category:"Consultes" },
+  { name:"CONSULTA 4 / OFT",           phones:["2902"],                   category:"Consultes" },
+  { name:"CONSULTA 5 / ORL",           phones:["2901"],                   category:"Consultes" },
+  // Especialitats
+  { name:"ANATOMIA PAT.",               phones:["2577"],                   category:"Especialitats" },
+  { name:"ANESTÈSIA RESIDENT",          phones:["4367","4477"],            category:"Especialitats" },
+  { name:"ANESTÈSIA ADJUNT",            phones:["4318","4319"],            category:"Especialitats" },
+  { name:"ADJ/RES ANESTÈSIA",          phones:["4318","4367"],            category:"Especialitats" },
+  { name:"CARDIO RESIDENT",             phones:["4317"],                   category:"Especialitats" },
+  { name:"CARDIO ADJUNT",               phones:["4432"],                   category:"Especialitats" },
+  { name:"ADJ/RES CARDIO",             phones:["4432","4317"],            category:"Especialitats" },
+  { name:"C. MAXIL·LO",                phones:["4330"],                   category:"Especialitats" },
+  { name:"C. PLÀSTICA",                phones:["2705","2451","4263"],     category:"Especialitats" },
+  { name:"C. TORÀCICA",                phones:["4390"],                   category:"Especialitats" },
+  { name:"C. VASCULAR",                phones:["4324"],                   category:"Especialitats" },
+  { name:"CIRURGIA RESIDENT",           phones:["4303"],                   category:"Especialitats" },
+  { name:"CIRURGIA ADJUNT",             phones:["4307","4306"],            category:"Especialitats" },
+  { name:"DERMATO",                     phones:["4261","2479"],            category:"Especialitats" },
+  { name:"DIGESTIU",                    phones:["4413"],                   category:"Especialitats" },
+  { name:"ENDOCRINOLOGIA",              phones:["4572"],                   category:"Especialitats" },
+  { name:"GINE RESIDENT",               phones:["4476"],                   category:"Especialitats" },
+  { name:"GINE ADJUNT",                 phones:["4310","4311"],            category:"Especialitats" },
+  { name:"HEMATOLOGIA",                 phones:["4322"],                   category:"Especialitats" },
+  { name:"INTERNA RESIDENT",            phones:["4333"],                   category:"Especialitats" },
+  { name:"INTERNA ADJUNT / INF.",       phones:["4304","4339"],            category:"Especialitats", note:"Infeccioses" },
+  { name:"INTERNA ADJUNT / SUPORT",     phones:["4304","4408"],            category:"Especialitats", note:"Suport" },
+  { name:"NEFROLOGIA",                  phones:["4323"],                   category:"Especialitats" },
+  { name:"NEURO ICTUS",                 phones:["4414"],                   category:"Especialitats" },
+  { name:"NEURO RESIDENT",              phones:["4386"],                   category:"Especialitats" },
+  { name:"NEURO VASCULAR",              phones:["4462"],                   category:"Especialitats" },
+  { name:"NEUROCIRURGIA",               phones:["4325"],                   category:"Especialitats" },
+  { name:"OFTALMOLOGIA",                phones:["4546"],                   category:"Especialitats" },
+  { name:"ONCOLOGIA RESIDENT",          phones:["4316"],                   category:"Especialitats" },
+  { name:"ONCOLOGIA PLANTA",            phones:["4431"],                   category:"Especialitats" },
+  { name:"OTORRINO",                    phones:["4327"],                   category:"Especialitats" },
+  { name:"PEDIA RESIDENT",              phones:["4476","4313"],            category:"Especialitats" },
+  { name:"PEDIA ADJUNT",                phones:["4300","4312"],            category:"Especialitats" },
+  { name:"PNEUMOLOGIA",                 phones:["4409"],                   category:"Especialitats" },
+  { name:"PSIQUIATRIA",                 phones:["616968900","4567"],       category:"Especialitats" },
+  { name:"RADIOTERAPIA",                phones:["4412"],                   category:"Especialitats" },
+  { name:"TRAUMA RESIDENT",             phones:["4309"],                   category:"Especialitats" },
+  { name:"TRAUMA ADJUNT",               phones:["4308"],                   category:"Especialitats" },
+  { name:"UROLOGIA",                    phones:["4329"],                   category:"Especialitats" },
+  // Radiologia
+  { name:"RADIOLOGIA (Guardia)",        phones:["4314"],                   category:"Radiologia",    note:"15:00 → 08:00 h · festius" },
+  { name:"TAC Neurologia / Eco Doppler TVP", phones:["4424","2739"],      category:"Radiologia",    note:"Horari laboral matí" },
+  { name:"TAC Tòrax (body) / Dubtes Rx Tòrax", phones:["2717"],          category:"Radiologia",    note:"Horari laboral matí" },
+  { name:"TAC Abdomen",                 phones:["4724"],                   category:"Radiologia",    note:"Horari laboral matí" },
+  { name:"Rx Portàtil",                 phones:["4701"],                   category:"Radiologia",    note:"Horari laboral matí" },
+  { name:"RM Musculoesquelètic",        phones:["2719"],                   category:"Radiologia",    note:"Horari laboral matí" },
+  { name:"Ecografia Abdominal",         phones:["2794"],                   category:"Radiologia",    note:"Horari laboral matí" },
+  { name:"Intervencionisme",            phones:["2506","2505"],            category:"Radiologia",    note:"Horari laboral matí" },
+  { name:"RAD. INTERVENCIONISTA",       phones:["671512931"],              category:"Radiologia",    note:"Guardia" },
+  // Proves
+  { name:"ECO",                         phones:["2794"],                   category:"Proves" },
+  { name:"MARCAPÀS",                    phones:["2257"],                   category:"Proves" },
+  { name:"TAC/RNM",                     phones:["2369","2632"],            category:"Proves" },
+  { name:"TAC NEURO MATÍ",              phones:["4424"],                   category:"Proves" },
+  { name:"PASSADÍS RX",                 phones:["2589"],                   category:"Proves" },
+  { name:"RX PORTÀTIL",                 phones:["4701"],                   category:"Proves" },
+  { name:"ENDOSCÒPIA",                  phones:["2869","2723"],            category:"Proves" },
+  { name:"HEMODINÀMIA",                 phones:["3685","2476"],            category:"Proves" },
+  // Seguretat
+  { name:"SEGURETAT",                   phones:["4342","4392","2355"],     category:"Seguretat" },
+  { name:"SEGURETAT TRIATGE",           phones:["4496"],                   category:"Seguretat" },
+  // Laboratori
+  { name:"LABORATORI URG",              phones:["2261","4388"],            category:"Laboratori" },
+  { name:"LABORATORI URG/HSC",          phones:["2261","6140"],            category:"Laboratori" },
+  { name:"LABORATORI ADJUNT",           phones:["4388"],                   category:"Laboratori" },
+  { name:"BANC DE SANG",                phones:["2385"],                   category:"Laboratori" },
+  // Farmàcia
+  { name:"FARMÀCIA",                    phones:["2274","2308"],            category:"Farmàcia" },
+  { name:"FARMACÈUTICA URG (CRISTINA)", phones:["4548"],                   category:"Farmàcia" },
+  // Administració
+  { name:"ADMISSIONS",                  phones:["2281","2520"],            category:"Administració" },
+  { name:"ADM. PROGRAMATS",             phones:["2304","2218"],            category:"Administració" },
+  { name:"REGISTRE",                    phones:["2311"],                   category:"Administració" },
+  { name:"RRHH",                        phones:["2202","2583"],            category:"Administració" },
+  { name:"FORMACIÓ",                    phones:["4320"],                   category:"Administració" },
+  // HAD
+  { name:"HAD BUSCA METGE",             phones:["4597","6186"],            category:"HAD" },
+  { name:"HAD ADMISSIONS",              phones:["2318"],                   category:"HAD" },
+  { name:"HAD INFERMERA",               phones:["6185","6187"],            category:"HAD" },
+  // Serveis
+  { name:"UACO",                        phones:["4498"],                   category:"Serveis" },
+  { name:"PROA / INFE",                 phones:["4339"],                   category:"Serveis" },
+  { name:"SANTI DONACIÓ",               phones:["4558"],                   category:"Serveis" },
+  { name:"SALUT PÚBLICA (matí)",        phones:["872480828"],              category:"Serveis" },
+  { name:"SUVEC",                       phones:["627480828"],              category:"Serveis" },
+  { name:"TÈCNIC OXIGEN",               phones:["667124471"],              category:"Serveis" },
+  { name:"INCIDÈNCIES OXIGEN",          phones:["900197125"],              category:"Serveis" },
+  { name:"CAFETERIA PERSONAL",          phones:["2403"],                   category:"Serveis" },
+  { name:"CAFETERIA PÚBLICA",           phones:["2562"],                   category:"Serveis" },
+  { name:"CUINA",                       phones:["2406"],                   category:"Serveis" },
+  { name:"ELECTROMED",                  phones:["4347"],                   category:"Serveis" },
+  { name:"MANTENIMENT",                 phones:["2348","4376"],            category:"Serveis" },
+  { name:"NETEJA",                      phones:["4448"],                   category:"Serveis" },
+  { name:"NETEJA MAQ. AÏLLATS",         phones:["4381"],                   category:"Serveis" },
+  { name:"UDEN",                        phones:["2595","2225"],            category:"Serveis" },
+  { name:"UBP",                         phones:["2201"],                   category:"Serveis" },
+  { name:"PREVENTIVA",                  phones:["2492"],                   category:"Serveis" },
+  { name:"MAGATZEM",                    phones:["2223"],                   category:"Serveis" },
+  { name:"ESTERILITZACIÓ",              phones:["2470"],                   category:"Serveis" },
+  { name:"ISABEL (HOTELERIA)",          phones:["4341"],                   category:"Serveis" },
+  { name:"LOGARITME",                   phones:["2779"],                   category:"Serveis" },
+  { name:"UCA",                         phones:["6128"],                   category:"Serveis" },
+  { name:"SERVEI RELIGIÓS",             phones:["4366"],                   category:"Serveis" },
+  { name:"INTÈRPRET",                   phones:["4350","6163","6155"],     category:"Serveis" },
+  { name:"TREBALL SOCIAL",              phones:["4343","4599","4365"],     category:"Serveis" },
+  { name:"SALA SESSIONS",               phones:["2636"],                   category:"Serveis" },
+  { name:"OFFICE",                      phones:["2857"],                   category:"Serveis" },
+  { name:"SAP",                         phones:["6200"],                   category:"Serveis" },
+  { name:"INFORMÀTICA",                 phones:["2777","4444"],            category:"Serveis" },
+  { name:"ETI",                         phones:["4458"],                   category:"Serveis" },
+  { name:"SUPERUSUÀRIA",                phones:["4375"],                   category:"Serveis" },
+  // Emergències
+  { name:"INCENDIS",                    phones:["2626"],                   category:"Emergències" },
+  { name:"AGRESSIÓ",                    phones:["#2702"],                  category:"Emergències" },
+  { name:"CODI PPT 0",                  phones:["#2728"],                  category:"Emergències" },
+  { name:"CODI PPT 1",                  phones:["#2703"],                  category:"Emergències" },
+  { name:"SEM",                         phones:["900101918"],              category:"Emergències" },
+];
+
+const CAT_ORDER = [
+  'Totes','Urgències','UCI','Infermeria','Zeladors','Adjunts','Residents',
+  'Zones','Consultes','Especialitats','Radiologia','Proves','Seguretat',
+  'Laboratori','Farmàcia','Administració','HAD','Serveis','Emergències'
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+// editingTarget: null | { type:'builtin', idx:number } | { type:'user', idx:number }
+let activeCat    = 'Totes';
+let query        = '';
+let editingTarget = null;
+let userCards    = [];
+let builtinOverrides = {}; // key = builtin index, value = edited entry
+
+try { userCards         = JSON.parse(localStorage.getItem('agenda_user')      || '[]'); } catch {}
+try { builtinOverrides  = JSON.parse(localStorage.getItem('agenda_overrides') || '{}'); } catch {}
+
+function allData() {
+  const builtins = builtinData.map((item, i) =>
+    builtinOverrides[i] ? { ...builtinOverrides[i], _builtinIdx: i, _edited: true } : { ...item, _builtinIdx: i }
+  );
+  const users = userCards.map((item, i) => ({ ...item, _userIdx: i }));
+  return [...builtins, ...users];
+}
+
+// ─── Utils ────────────────────────────────────────────────────────────────────
+const norm    = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[·.\-\/]/g,' ');
+const escHtml = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function matchesQuery(item, q) {
+  if (!q) return true;
+  const nq = norm(q);
+  if (norm(item.name).includes(nq)) return true;
+  if (norm(item.category).includes(nq)) return true;
+  if (item.note && norm(item.note).includes(nq)) return true;
+  const qd = q.replace(/\D/g,'');
+  if (qd && item.phones.some(p => p.replace(/\D/g,'').includes(qd))) return true;
+  return false;
+}
+
+function highlight(text, q) {
+  if (!q) return escHtml(text);
+  const nt = norm(text), nq = norm(q);
+  const i = nt.indexOf(nq);
+  if (i === -1) return escHtml(text);
+  return escHtml(text.slice(0,i)) + '<span class="hl">' + escHtml(text.slice(i, i+q.length)) + '</span>' + escHtml(text.slice(i+q.length));
+}
+
+// ─── Categories ───────────────────────────────────────────────────────────────
+function getCats() {
+  const present = new Set(allData().map(d => d.category));
+  const cats = CAT_ORDER.filter(c => c==='Totes' || present.has(c));
+  allData().forEach(d => { if (!cats.includes(d.category)) cats.push(d.category); });
+  return cats;
+}
+function catCount(cat) { return cat==='Totes' ? allData().length : allData().filter(d=>d.category===cat).length; }
+
+function renderCats() {
+  const catBar = document.getElementById('catBar');
+  catBar.innerHTML = getCats().map(c =>
+    `<button class="cat-pill ${c===activeCat?'active':''}" data-cat="${escHtml(c)}">
+      ${escHtml(c)}<span class="cat-count-badge">${catCount(c)}</span>
+    </button>`
+  ).join('');
+  // Scroll active pill into view
+  const active = catBar.querySelector('.active');
+  if (active) active.scrollIntoView({inline:'nearest', block:'nearest', behavior:'smooth'});
+  // Modal select
+  const fCat = document.getElementById('fCat');
+  const prev = fCat.value;
+  fCat.innerHTML = getCats().filter(c=>c!=='Totes').map(c =>
+    `<option value="${escHtml(c)}">${escHtml(c)}</option>`
+  ).join('') + `<option value="__new__">＋ Nova categoria…</option>`;
+  if (prev) fCat.value = prev;
+}
+
+// ─── Grid ─────────────────────────────────────────────────────────────────────
+function renderGrid() {
+  const filtered = allData().filter(item =>
+    (activeCat==='Totes' || item.category===activeCat) && matchesQuery(item, query)
+  );
+
+  const grid = document.getElementById('grid');
+  const n = filtered.length;
+  document.getElementById('statsBar').textContent = `${n} contacte${n!==1?'s':''}`;
+
+  if (!n) {
+    grid.innerHTML = `<div class="empty"><big>🔍</big><p>No s'han trobat resultats${query?` per "<strong>${escHtml(query)}</strong>"`:''}</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(item => {
+    const isUser    = item._userIdx !== undefined;
+    const isEdited  = !!item._edited;
+    const phones    = item.phones.map(p =>
+      `<span class="phone-num" data-phone="${escHtml(p)}" role="button" tabindex="0">${escHtml(p)}</span>`
+    ).join('');
+
+    let cardClass = 'card';
+    if (isUser)   cardClass += ' user-card';
+    if (isEdited) cardClass += ' edited-card';
+
+    // Edit button for everyone; delete only for user-added
+    const editData = isUser
+      ? `data-type="user" data-idx="${item._userIdx}"`
+      : `data-type="builtin" data-idx="${item._builtinIdx}"`;
+
+    const delBtn = isUser
+      ? `<button class="icon-btn del" data-idx="${item._userIdx}" aria-label="Eliminar">✕</button>`
+      : (isEdited
+          ? `<button class="icon-btn restore" data-idx="${item._builtinIdx}" aria-label="Restaurar original" title="Restaurar original">↩</button>`
+          : '');
+
+    return `<article class="${cardClass}" role="listitem">
+      <div class="card-head">
+        <div class="card-name">${highlight(item.name, query)}</div>
+        <div class="card-badges">
+          <span class="cat-badge">${escHtml(item.category)}</span>
+          <div class="card-actions">
+            <button class="icon-btn edit" ${editData} aria-label="Editar">✏️</button>
+            ${delBtn}
+          </div>
+        </div>
+      </div>
+      ${item.note ? `<div class="card-note">⏱ ${escHtml(item.note)}</div>` : ''}
+      <div class="phones">${phones}</div>
+    </article>`;
+  }).join('');
+
+  // Copy on tap
+  grid.querySelectorAll('.phone-num').forEach(el => {
+    el.addEventListener('click', () => {
+      navigator.clipboard.writeText(el.dataset.phone).then(() => {
+        el.classList.add('copied');
+        toast(`${el.dataset.phone} copiat ✓`);
+        setTimeout(() => el.classList.remove('copied'), 1500);
+      }).catch(() => {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = el.dataset.phone;
+          ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          el.classList.add('copied');
+          toast(`${el.dataset.phone} copiat ✓`);
+          setTimeout(() => el.classList.remove('copied'), 1500);
+        } catch { toast('No s\'ha pogut copiar'); }
+      });
+    });
+  });
+
+  grid.querySelectorAll('.icon-btn.edit').forEach(btn => {
+    btn.addEventListener('click', () =>
+      openModal({ type: btn.dataset.type, idx: parseInt(btn.dataset.idx, 10) })
+    );
+  });
+
+  grid.querySelectorAll('.icon-btn.del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.idx, 10);
+      if (confirm(`Eliminar "${userCards[i].name}"?`)) { userCards.splice(i,1); saveAll(); renderAll(); }
+    });
+  });
+
+  grid.querySelectorAll('.icon-btn.restore').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.idx, 10);
+      const orig = builtinData[i];
+      if (confirm(`Restaurar "${orig.name}" als valors originals?`)) {
+        delete builtinOverrides[i];
+        saveAll(); renderAll();
+        toast(`"${orig.name}" restaurat ✓`);
+      }
+    });
+  });
+}
+
+function renderAll() { renderCats(); renderGrid(); }
+
+// ─── Search events ────────────────────────────────────────────────────────────
+const debounce = (fn, ms=140) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
+const searchInput = document.getElementById('searchInput');
+const clearBtn    = document.getElementById('clearBtn');
+
+searchInput.addEventListener('input', debounce(() => {
+  query = searchInput.value.trim();
+  clearBtn.classList.toggle('visible', !!query);
+  renderGrid();
+}));
+clearBtn.addEventListener('click', () => {
+  searchInput.value = ''; query = '';
+  clearBtn.classList.remove('visible');
+  searchInput.focus(); renderGrid();
+});
+document.getElementById('catBar').addEventListener('click', e => {
+  const btn = e.target.closest('.cat-pill'); if (!btn) return;
+  activeCat = btn.dataset.cat; renderAll();
+});
+
+// ─── Modal ────────────────────────────────────────────────────────────────────
+const backdrop   = document.getElementById('modalBackdrop');
+const fName      = document.getElementById('fName');
+const fPhone     = document.getElementById('fPhone');
+const fNote      = document.getElementById('fNote');
+const fCat       = document.getElementById('fCat');
+const modalTitle = document.getElementById('modalTitle');
+
+function openModal(target = null) {
+  editingTarget = target;
+  if (target) {
+    let c;
+    if (target.type === 'builtin') {
+      c = builtinOverrides[target.idx] || builtinData[target.idx];
+    } else {
+      c = userCards[target.idx];
+    }
+    modalTitle.textContent = 'Editar contacte';
+    fName.value  = c.name;
+    fPhone.value = c.phones.join(' / ');
+    fNote.value  = c.note || '';
+    renderCats(); fCat.value = c.category;
+  } else {
+    modalTitle.textContent = 'Nou contacte';
+    fName.value = ''; fPhone.value = ''; fNote.value = '';
+    renderCats(); fCat.value = fCat.options[0]?.value || '';
+  }
+  backdrop.classList.add('open');
+  setTimeout(() => fName.focus(), 200);
+}
+function closeModal() { backdrop.classList.remove('open'); editingTarget = null; }
+
+document.getElementById('addBtn').addEventListener('click', () => openModal(null));
+document.getElementById('cancelModal').addEventListener('click', closeModal);
+backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+fCat.addEventListener('change', () => {
+  if (fCat.value === '__new__') {
+    const nv = prompt('Nom de la nova categoria:');
+    if (nv?.trim()) {
+      const opt = document.createElement('option');
+      opt.value = nv.trim(); opt.textContent = nv.trim();
+      fCat.insertBefore(opt, fCat.lastElementChild);
+      fCat.value = nv.trim();
+    } else { fCat.value = fCat.options[0]?.value || ''; }
+  }
+});
+
+document.getElementById('saveModal').addEventListener('click', () => {
+  const name  = fName.value.trim().toUpperCase();
+  const raw   = fPhone.value.trim();
+  const note  = fNote.value.trim();
+  const cat   = fCat.value === '__new__' ? fCat.options[fCat.selectedIndex]?.text : fCat.value;
+  if (!name) { fName.focus(); toast('El nom és obligatori'); return; }
+  if (!raw)  { fPhone.focus(); toast('El número és obligatori'); return; }
+  const phones = raw.split(/[\/,]/).map(p=>p.trim()).filter(Boolean);
+  const entry  = { name, phones, category: cat, ...(note?{note}:{}) };
+
+  if (!editingTarget) {
+    userCards.push(entry);
+    toast(`"${name}" afegit ✓`);
+  } else if (editingTarget.type === 'builtin') {
+    builtinOverrides[editingTarget.idx] = entry;
+    toast(`"${name}" actualitzat ✓`);
+  } else {
+    userCards[editingTarget.idx] = entry;
+    toast(`"${name}" actualitzat ✓`);
+  }
+  saveAll(); closeModal(); renderAll();
+});
+
+function saveAll() {
+  try { localStorage.setItem('agenda_user',      JSON.stringify(userCards));        } catch {}
+  try { localStorage.setItem('agenda_overrides', JSON.stringify(builtinOverrides)); } catch {}
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+renderAll();
+</script>
+</body>
+</html>
