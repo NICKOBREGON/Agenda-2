@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Agenda Telefònica</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0d1117" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Agenda" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --surface2: #1c2333;
+      --surface3: #21262d;
+      --border:   #30363d;
+      --border2:  #3d444d;
+      --accent:   #2f81f7;
+      --accent2:  #79c0ff;
+      --ok:       #3fb950;
+      --warn:     #d29922;
+      --danger:   #f85149;
+      --txt:      #e6edf3;
+      --txt2:     #8b949e;
+      --txt3:     #6e7681;
+      --radius:   10px;
+      --radius-lg: 16px;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans', sans-serif;
+      --sat: env(safe-area-inset-top, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+      --sal: env(safe-area-inset-left, 0px);
+      --sar: env(safe-area-inset-right, 0px);
+    }
+
+    /* Category accent colors */
+    :root {
+      --c-urgencies:     #f85149;
+      --c-uci:           #a371f7;
+      --c-infermeria:    #22d3ee;
+      --c-zeladors:      #fb923c;
+      --c-adjunts:       #3b82f6;
+      --c-residents:     #34d399;
+      --c-zones:         #94a3b8;
+      --c-consultes:     #818cf8;
+      --c-especialitats: #f472b6;
+      --c-proves:        #2dd4bf;
+      --c-radiologia:    #fb923c;
+      --c-laboratori:    #a3e635;
+      --c-farmacia:      --c-uci;
+      --c-had:           #38bdf8;
+      --c-administracio: #94a3b8;
+      --c-serveis:       #a8a29e;
+      --c-seguretat:     #f87171;
+      --c-emergencies:   #fbbf24;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { height: 100%; -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--txt);
+      -webkit-font-smoothing: antialiased;
+      height: 100%;
+      overscroll-behavior: none;
+    }
+
+    /* ── App shell ─────────────────────────────────────────────── */
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      padding-top: var(--sat);
+    }
+
+    /* ── Header ────────────────────────────────────────────────── */
+    .header {
+      flex-shrink: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 14px 10px;
+    }
+    .header-row1 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .brand-text h1 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -.2px;
+      color: var(--txt);
+    }
+    .brand-text small {
+      font-size: 11px;
+      color: var(--txt3);
+      font-family: var(--mono);
+    }
+
+    #addBtn {
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      color: #fff;
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 38px;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .15s;
+    }
+    #addBtn:active { background: #388bfd; }
+
+    /* Search */
+    .search-wrap { position: relative; }
+    .search-icon {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--txt3);
+      pointer-events: none;
+      display: flex;
+    }
+    #searchInput {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--txt);
+      font-family: var(--sans);
+      font-size: 16px;
+      padding: 10px 38px 10px 36px;
+      outline: none;
+      transition: border-color .15s, background .15s;
+      -webkit-appearance: none;
+    }
+    #searchInput::placeholder { color: var(--txt3); }
+    #searchInput:focus {
+      border-color: var(--accent);
+      background: var(--surface3);
+    }
+    #clearBtn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--border);
+      border: none;
+      border-radius: 6px;
+      color: var(--txt2);
+      font-size: 11px;
+      cursor: pointer;
+      width: 26px;
+      height: 26px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #clearBtn.visible { display: flex; }
+
+    /* ── Category tabs ─────────────────────────────────────────── */
+    .cat-bar {
+      flex-shrink: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      display: flex;
+      gap: 6px;
+      padding: 8px 12px;
+    }
+    .cat-bar::-webkit-scrollbar { display: none; }
+
+    .cat-pill {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--txt2);
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .1s, color .1s, border-color .1s;
+      min-height: 32px;
+    }
+    .cat-pill:active { opacity: .75; }
+    .cat-pill.active {
+      background: rgba(47,129,247,.15);
+      border-color: rgba(47,129,247,.4);
+      color: var(--accent2);
+      font-weight: 600;
+    }
+    .cat-icon { font-size: 13px; line-height: 1; }
+    .cat-count {
+      font-family: var(--mono);
+      font-size: 10px;
+      background: rgba(255,255,255,.07);
+      border-radius: 999px;
+      padding: 1px 6px;
+      color: var(--txt3);
+    }
+    .cat-pill.active .cat-count {
+      background: rgba(47,129,247,.2);
+      color: var(--accent2);
+    }
+
+    /* ── Stats ─────────────────────────────────────────────────── */
+    .stats-bar {
+      flex-shrink: 0;
+      padding: 5px 14px;
+      font-size: 11px;
+      color: var(--txt3);
+      font-family: var(--mono);
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── List area ─────────────────────────────────────────────── */
+    .list-area {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 10px 12px;
+      padding-bottom: calc(10px + var(--sab));
+    }
+    .list-area::-webkit-scrollbar { width: 3px; }
+    .list-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── Cards grid ────────────────────────────────────────────── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    /* ── Card ───────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--cat-color, var(--border2));
+    }
+    .card-inner {
+      padding: 11px 13px 11px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+    .card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .card-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--txt);
+      line-height: 1.35;
+      flex: 1;
+      letter-spacing: .1px;
+    }
+    .card-meta {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+    .cat-badge {
+      font-size: 10px;
+      font-family: var(--mono);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 6px;
+      color: var(--txt3);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      white-space: nowrap;
+    }
+    .card.user-card { border-color: rgba(251,146,60,.3); }
+    .card.user-card::before { background: var(--warn); }
+    .card.edited-card { border-color: rgba(63,185,80,.25); }
+    .card.edited-card::before { background: var(--ok); }
+    .card-note {
+      font-size: 11px;
+      color: var(--warn);
+      font-family: var(--mono);
+      line-height: 1.4;
+    }
+
+    /* ── Phone chips ───────────────────────────────────────────── */
+    .phones {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .phone-chip {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--accent2);
+      background: rgba(47,129,247,.08);
+      border: 1px solid rgba(47,129,247,.2);
+      border-radius: 7px;
+      padding: 6px 12px;
+      line-height: 1;
+      user-select: all;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .12s;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+    }
+    .phone-chip:active,
+    .phone-chip:hover { background: rgba(47,129,247,.16); }
+    .phone-chip.copied {
+      color: var(--ok);
+      background: rgba(63,185,80,.1);
+      border-color: rgba(63,185,80,.3);
+    }
+    .phone-chip.special {
+      color: #fbbf24;
+      background: rgba(251,191,36,.08);
+      border-color: rgba(251,191,36,.25);
+    }
+
+    /* ── Card actions ──────────────────────────────────────────── */
+    .card-actions {
+      display: flex;
+      gap: 2px;
+      margin-left: 4px;
+    }
+    .icon-btn {
+      background: none;
+      border: none;
+      color: var(--txt3);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      min-width: 30px;
+      min-height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .1s, color .1s;
+    }
+    .icon-btn:hover, .icon-btn:active { background: var(--surface2); }
+    .icon-btn.edit:active { color: var(--accent2); }
+    .icon-btn.del:active  { color: var(--danger); }
+    .icon-btn.restore:active { color: var(--ok); }
+
+    /* ── Highlight ─────────────────────────────────────────────── */
+    .hl {
+      background: rgba(210,153,34,.25);
+      color: #e3b341;
+      border-radius: 3px;
+      padding: 0 2px;
+    }
+
+    /* ── Empty state ───────────────────────────────────────────── */
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--txt3);
+    }
+    .empty-icon { font-size: 40px; display: block; margin-bottom: 14px; }
+    .empty p { font-size: 14px; line-height: 1.6; }
+
+    /* ── Modal ─────────────────────────────────────────────────── */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0,0,0,.75);
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 18px 18px 0 0;
+      padding: 18px 18px;
+      padding-bottom: calc(18px + var(--sab));
+      width: 100%;
+      max-width: 600px;
+      box-shadow: 0 -16px 48px rgba(0,0,0,.6);
+      animation: slideUp .22s cubic-bezier(.22,1,.36,1);
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .modal-drag {
+      width: 36px;
+      height: 4px;
+      background: var(--border2);
+      border-radius: 2px;
+      margin: 0 auto 16px;
+    }
+    .modal h2 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 18px;
+      color: var(--txt);
+    }
+
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block;
+      font-size: 11px;
+      color: var(--txt3);
+      margin-bottom: 6px;
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+    }
+    .field input,
+    .field select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--txt);
+      font-family: var(--sans);
+      font-size: 16px;
+      padding: 10px 13px;
+      outline: none;
+      -webkit-appearance: none;
+      transition: border-color .15s;
+    }
+    .field input:focus,
+    .field select:focus { border-color: var(--accent); }
+    .field select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236e7681' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+    .field small {
+      display: block;
+      font-size: 11px;
+      color: var(--txt3);
+      margin-top: 5px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .modal-actions button {
+      flex: 1;
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 600;
+      padding: 13px;
+      border-radius: var(--radius);
+      border: none;
+      cursor: pointer;
+      min-height: 48px;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .15s;
+    }
+    #cancelModal {
+      background: var(--surface2);
+      color: var(--txt2);
+      border: 1px solid var(--border);
+    }
+    #cancelModal:active { color: var(--txt); }
+    #saveModal { background: var(--accent); color: #fff; }
+    #saveModal:active { background: #388bfd; }
+
+    /* ── Toast ─────────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: calc(22px + var(--sab));
+      left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--txt);
+      font-size: 13px;
+      padding: 10px 18px;
+      border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+      opacity: 0;
+      transition: opacity .18s, transform .18s;
+      pointer-events: none;
+      z-index: 300;
+      font-family: var(--mono);
+      white-space: nowrap;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── PWA install banner ────────────────────────────────────── */
+    #installBanner {
+      display: none;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, rgba(47,129,247,.15), rgba(47,129,247,.05));
+      border-bottom: 1px solid rgba(47,129,247,.25);
+      padding: 10px 14px;
+      align-items: center;
+      gap: 10px;
+    }
+    #installBanner.visible { display: flex; }
+    #installBanner p {
+      flex: 1;
+      font-size: 13px;
+      color: var(--txt2);
+    }
+    #installBanner strong { color: var(--accent2); }
+    #installBtn {
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    #dismissInstall {
+      background: none;
+      border: none;
+      color: var(--txt3);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+    }
+
+    /* ── Desktop ───────────────────────────────────────────────── */
+    @media (min-width: 720px) {
+      .app {
+        max-width: 960px;
+        margin: 0 auto;
+        border-left: 1px solid var(--border);
+        border-right: 1px solid var(--border);
+      }
+      .cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .modal-backdrop { align-items: center; }
+      .modal {
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        max-width: 460px;
+        padding-bottom: 20px;
+      }
+      .modal-drag { display: none; }
+      .list-area { padding-bottom: 20px; }
+    }
+    @media (min-width: 1100px) {
+      .cards-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Install banner -->
+  <div id="installBanner">
+    <p><strong>Instal·la l'app</strong> per accedir ràpidament sense internet</p>
+    <button id="installBtn">Instal·lar</button>
+    <button id="dismissInstall" aria-label="Descartar">✕</button>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-row1">
+      <div class="brand">
+        <div class="brand-logo">📋</div>
+        <div class="brand-text">
+          <h1>Agenda Telefònica</h1>
+          <small>Directori · Hospital · 2026</small>
+        </div>
+      </div>
+      <button id="addBtn" aria-label="Afegir nou contacte">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Nou
+      </button>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
+        </svg>
+      </span>
+      <input id="searchInput" type="search" inputmode="search" autocomplete="off" spellcheck="false"
+             placeholder="Cerca servei, departament o número…" />
+      <button id="clearBtn" aria-label="Netejar cerca">✕</button>
+    </div>
+  </header>
+
+  <!-- Category tabs -->
+  <nav class="cat-bar" id="catBar" aria-label="Filtres per categoria"></nav>
+
+  <!-- Stats -->
+  <div class="stats-bar" id="statsBar"></div>
+
+  <!-- Cards -->
+  <main class="list-area" role="main">
+    <div class="cards-grid" id="grid"></div>
+  </main>
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <h2 id="modalTitle">Nou contacte</h2>
+    <div class="field">
+      <label for="fName">Nom / Servei</label>
+      <input id="fName" type="text" autocomplete="off" placeholder="Ex: REUMATOLOGIA" />
+    </div>
+    <div class="field">
+      <label for="fPhone">Número(s)</label>
+      <input id="fPhone" type="text" inputmode="text" autocomplete="off" placeholder="Ex: 4321 o 4321 / 4322" />
+      <small>Separa múltiples extensions amb / o coma</small>
+    </div>
+    <div class="field">
+      <label for="fNote">Nota (opcional)</label>
+      <input id="fNote" type="text" autocomplete="off" placeholder="Ex: Horari matí, guardia, etc." />
+    </div>
+    <div class="field">
+      <label for="fCat">Categoria</label>
+      <select id="fCat"></select>
+    </div>
+    <div class="modal-actions">
+      <button id="cancelModal">Cancel·lar</button>
+      <button id="saveModal">Desar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ─── Category config ───────────────────────────────────────────────────────────
+const CAT_CONFIG = {
+  'Totes':          { icon: '🏥', color: '#8b949e' },
+  'Urgències':      { icon: '🚨', color: '#f85149' },
+  'UCI':            { icon: '💉', color: '#a371f7' },
+  'Infermeria':     { icon: '👩‍⚕️', color: '#22d3ee' },
+  'Zeladors':       { icon: '🔧', color: '#fb923c' },
+  'Adjunts':        { icon: '🩺', color: '#3b82f6' },
+  'Residents':      { icon: '📚', color: '#34d399' },
+  'Zones':          { icon: '🗺️', color: '#94a3b8' },
+  'Consultes':      { icon: '🚪', color: '#818cf8' },
+  'Especialitats':  { icon: '⚕️', color: '#f472b6' },
+  'Proves':         { icon: '🔬', color: '#2dd4bf' },
+  'Radiologia':     { icon: '🩻', color: '#fdba74' },
+  'Laboratori':     { icon: '🧪', color: '#a3e635' },
+  'Farmàcia':       { icon: '💊', color: '#c084fc' },
+  'HAD':            { icon: '🏠', color: '#38bdf8' },
+  'Administració':  { icon: '📋', color: '#94a3b8' },
+  'Serveis':        { icon: '⚙️', color: '#a8a29e' },
+  'Seguretat':      { icon: '🔒', color: '#f87171' },
+  'Emergències':    { icon: '⚠️', color: '#fbbf24' },
+};
+
+const CAT_ORDER = [
+  'Totes','Urgències','UCI','Infermeria','Zeladors','Adjunts','Residents',
+  'Zones','Consultes','Especialitats','Proves','Radiologia','Laboratori',
+  'Farmàcia','HAD','Administració','Serveis','Seguretat','Emergències'
+];
+
+// ─── Data (LLISTAT TELÈFON 2026) ───────────────────────────────────────────────
+const builtinData = [
+  // Urgències – supervisió i caps
+  { name:"SUPERVISORA URG",             phones:["2638","4334"],            category:"Urgències" },
+  { name:"SUPERVISOR GENERAL",          phones:["4332"],                   category:"Urgències" },
+  { name:"CAP DE GUÀRDIA",              phones:["6116"],                   category:"Urgències" },
+  { name:"CAP SERVEI",                  phones:["2320","4475"],            category:"Urgències" },
+  { name:"REANIMACIÓ",                  phones:["2412","2445"],            category:"Urgències" },
+  { name:"CATÀSTROFES",                 phones:["2297"],                   category:"Urgències" },
+  { name:"SUPER UCI",                   phones:["4457"],                   category:"UCI" },
+  { name:"UCI / UCO",                   phones:["2484","2400"],            category:"UCI" },
+  { name:"UCI RESIDENT",                phones:["4436"],                   category:"UCI" },
+  { name:"UCI ADJUNT",                  phones:["4321","4345"],            category:"UCI" },
+  { name:"UCI SANTA CATERINA",          phones:["667079969"],              category:"UCI" },
+  { name:"UIC",                         phones:["4470"],                   category:"UCI" },
+  // Infermeria
+  { name:"INF. TRIATGE",                phones:["4419","4710"],            category:"Infermeria" },
+  { name:"INF. CRÍTICS",                phones:["4437","4727"],            category:"Infermeria" },
+  { name:"INF. E.R.R",                  phones:["4434"],                   category:"Infermeria" },
+  { name:"INF. CIRCUIT RÀPID",          phones:["4472"],                   category:"Infermeria" },
+  { name:"INF. TRAUMA",                 phones:["4471"],                   category:"Infermeria" },
+  { name:"INF. GIDA",                   phones:["4726"],                   category:"Infermeria" },
+  { name:"INF. URG PED",                phones:["4429"],                   category:"Infermeria" },
+  { name:"INF. OSTOMIES",               phones:["4391"],                   category:"Infermeria" },
+  { name:"INF. PREVENTIVA",             phones:["4383"],                   category:"Infermeria" },
+  { name:"INF. CLÍNICA UCA",            phones:["4599"],                   category:"Infermeria" },
+  // Zeladors
+  { name:"ZEL. TRAUMA",                 phones:["4454"],                   category:"Zeladors" },
+  { name:"ZEL. OBSERVACIÓ / CRÍTICS",   phones:["4456"],                   category:"Zeladors" },
+  { name:"ZEL. BOXS",                   phones:["4455"],                   category:"Zeladors" },
+  { name:"ZEL. TRIATGE",                phones:["4453"],                   category:"Zeladors" },
+  { name:"ZEL. PEDIÀTRIA",              phones:["4428"],                   category:"Zeladors" },
+  { name:"ZEL. ERR",                    phones:["4435"],                   category:"Zeladors" },
+  // Adjunts de guàrdia
+  { name:"ADJUNT A",                    phones:["4449"],                   category:"Adjunts" },
+  { name:"ADJUNT B",                    phones:["4450"],                   category:"Adjunts" },
+  { name:"ADJUNT C",                    phones:["4380"],                   category:"Adjunts" },
+  { name:"ADJUNT D",                    phones:["4452"],                   category:"Adjunts" },
+  { name:"ADJUNT R",                    phones:["4451"],                   category:"Adjunts" },
+  { name:"ADJUNT P",                    phones:["4356"],                   category:"Adjunts" },
+  { name:"ADJUNT S",                    phones:["4594"],                   category:"Adjunts" },
+  { name:"ADJUNT L",                    phones:["4570"],                   category:"Adjunts" },
+  // Residents
+  { name:"RESI URG",                    phones:["4556","4715"],            category:"Residents" },
+  // Zones controls
+  { name:"TRAUMA",                      phones:["2631"],                   category:"Zones" },
+  { name:"CONTROL A",                   phones:["2280"],                   category:"Zones" },
+  { name:"CONTROL B",                   phones:["2392"],                   category:"Zones" },
+  { name:"CONTROL C",                   phones:["2337"],                   category:"Zones" },
+  { name:"CRÍTICS",                     phones:["2566"],                   category:"Zones" },
+  { name:"BUTAQUES",                    phones:["4290"],                   category:"Zones" },
+  { name:"TRIATGE",                     phones:["2655"],                   category:"Zones" },
+  { name:"OBSERVACIÓ METGE",            phones:["4291"],                   category:"Zones" },
+  { name:"OBSERVACIÓ INF",              phones:["2362"],                   category:"Zones" },
+  // Consultes
+  { name:"CONSULTA 1",                  phones:["2905"],                   category:"Consultes" },
+  { name:"CONSULTA 2",                  phones:["2904"],                   category:"Consultes" },
+  { name:"CONSULTA 3 / ORL",            phones:["2903"],                   category:"Consultes" },
+  { name:"CONSULTA 4 / OFT",            phones:["2902"],                   category:"Consultes" },
+  { name:"CONSULTA 5",                  phones:["2901"],                   category:"Consultes" },
+  // Especialitats (localitzadors de guàrdia)
+  { name:"ANESTÈSIA RESI",              phones:["4367","4477"],            category:"Especialitats" },
+  { name:"ANESTÈSIA ADJUNT",            phones:["4318","4319"],            category:"Especialitats" },
+  { name:"ANATOMIA PATOLÒGICA",         phones:["2577"],                   category:"Especialitats" },
+  { name:"CARDIO RESI",                 phones:["4317"],                   category:"Especialitats" },
+  { name:"CARDIO ADJUNT",               phones:["4432"],                   category:"Especialitats" },
+  { name:"C. MAXIL·LOFACIAL",           phones:["4330"],                   category:"Especialitats" },
+  { name:"C. PLÀSTICA",                 phones:["2705","2451","4263"],     category:"Especialitats" },
+  { name:"C. TORÀCICA",                 phones:["4390"],                   category:"Especialitats" },
+  { name:"C. VASCULAR",                 phones:["4324"],                   category:"Especialitats" },
+  { name:"CIRURGIA RESI",               phones:["4303"],                   category:"Especialitats" },
+  { name:"CIRURGIA ADJUNT",             phones:["4307","4306"],            category:"Especialitats" },
+  { name:"DERMATO",                     phones:["4261","2479"],            category:"Especialitats" },
+  { name:"DIGESTIU",                    phones:["4413"],                   category:"Especialitats" },
+  { name:"ENDOCRINOLOGIA",              phones:["4572"],                   category:"Especialitats" },
+  { name:"GINE RESI",                   phones:["4476"],                   category:"Especialitats" },
+  { name:"GINE ADJUNT",                 phones:["4310","4311"],            category:"Especialitats" },
+  { name:"HEMATOLOGIA",                 phones:["4322"],                   category:"Especialitats" },
+  { name:"INTERNA RESI",                phones:["4333"],                   category:"Especialitats" },
+  { name:"INTERNA ADJUNT / INFECCIOSES",phones:["4304","4339"],            category:"Especialitats" },
+  { name:"INTERNA ADJUNT / SUPORT",     phones:["4304","4408"],            category:"Especialitats" },
+  { name:"NEFROLOGIA",                  phones:["4323"],                   category:"Especialitats" },
+  { name:"NEURO ICTUS",                 phones:["4414"],                   category:"Especialitats" },
+  { name:"NEURO RESI",                  phones:["4386"],                   category:"Especialitats" },
+  { name:"NEURO VASCULAR",              phones:["4462"],                   category:"Especialitats" },
+  { name:"NEUROCIRURGIA",               phones:["4325"],                   category:"Especialitats" },
+  { name:"OFTALMOLOGIA",                phones:["4546"],                   category:"Especialitats" },
+  { name:"ONCOLOGIA RESI",              phones:["4316"],                   category:"Especialitats" },
+  { name:"ONCOLOGIA PLANTA",            phones:["4431"],                   category:"Especialitats" },
+  { name:"OTORRINO",                    phones:["4327"],                   category:"Especialitats" },
+  { name:"PEDIA RESI",                  phones:["4476","4313"],            category:"Especialitats" },
+  { name:"PEDIA ADJUNT",                phones:["4300","4312"],            category:"Especialitats" },
+  { name:"PNEUMOLOGIA",                 phones:["4409"],                   category:"Especialitats" },
+  { name:"PSIQUIATRIA",                 phones:["616968900","4567"],        category:"Especialitats" },
+  { name:"RADIOLOGIA",                  phones:["4314"],                   category:"Especialitats" },
+  { name:"RAD. INTERVENCIONISTA",       phones:["671512931"],              category:"Especialitats" },
+  { name:"RADIOTERÀPIA",                phones:["4412"],                   category:"Especialitats" },
+  { name:"TRAUMA RESI",                 phones:["4309"],                   category:"Especialitats" },
+  { name:"TRAUMA ADJUNT",               phones:["4308"],                   category:"Especialitats" },
+  { name:"UROLOGIA",                    phones:["4329"],                   category:"Especialitats" },
+  // Proves diagnòstiques
+  { name:"ECO",                         phones:["2794"],                   category:"Proves" },
+  { name:"MARCAPÀS",                    phones:["2257"],                   category:"Proves" },
+  { name:"TAC / RNM",                   phones:["2369","2632"],            category:"Proves" },
+  { name:"TAC NEURO (matí)",            phones:["4424"],                   category:"Proves",         note:"Horari laboral matí" },
+  { name:"RX PORTÀTIL",                 phones:["4701"],                   category:"Proves" },
+  { name:"PASSADÍS RX",                 phones:["2589"],                   category:"Proves" },
+  { name:"ENDOSCÒPIA",                  phones:["2869","2723","2287"],     category:"Proves" },
+  { name:"HEMODINÀMIA",                 phones:["3685","2476"],            category:"Proves" },
+  // Radiologia
+  { name:"RADIOLOGIA (guardia)",        phones:["4314"],                   category:"Radiologia",     note:"15:00–08:00 h · festius" },
+  { name:"RAD. INTERVENCIONISTA",       phones:["671512931"],              category:"Radiologia",     note:"Guardia" },
+  // Laboratori
+  { name:"LABORATORI URG / HSC",        phones:["2261","6140"],            category:"Laboratori" },
+  { name:"LABORATORI ADJUNT",           phones:["4388"],                   category:"Laboratori" },
+  { name:"BANC SANG",                   phones:["2385","4338"],            category:"Laboratori" },
+  { name:"ANATOMIA PAT.",               phones:["2577"],                   category:"Laboratori" },
+  // Farmàcia
+  { name:"FARMÀCIA",                    phones:["2274","2308"],            category:"Farmàcia" },
+  { name:"FARMACÈUTICA URG (CRISTINA)", phones:["4548"],                   category:"Farmàcia" },
+  // HAD
+  { name:"HAD BUSCA METGE",             phones:["4597","6186"],            category:"HAD" },
+  { name:"HAD ADMISSIONS",              phones:["2318"],                   category:"HAD" },
+  { name:"HAD INFERMERA",               phones:["6185","6187"],            category:"HAD" },
+  { name:"ETI",                         phones:["4458"],                   category:"HAD" },
+  { name:"SUPERUSUARIA HAD",            phones:["4375"],                   category:"HAD" },
+  { name:"TÈCNIC OXIGEN",               phones:["667124471"],              category:"HAD" },
+  { name:"INCIDÈNCIES OXIGEN",          phones:["900197125"],              category:"HAD" },
+  // Administració
+  { name:"ADMISSIONS",                  phones:["2281","2520"],            category:"Administració" },
+  { name:"ADM. PROGRAMATS",             phones:["2304","2218"],            category:"Administració" },
+  { name:"REGISTRE",                    phones:["2311"],                   category:"Administració" },
+  { name:"RRHH",                        phones:["2202","2583"],            category:"Administració" },
+  { name:"FORMACIÓ",                    phones:["4320"],                   category:"Administració" },
+  { name:"SALA SESSIONS",               phones:["2636"],                   category:"Administració" },
+  { name:"OFFICE",                      phones:["2857"],                   category:"Administració" },
+  { name:"UCA",                         phones:["6128"],                   category:"Administració" },
+  { name:"UACO",                        phones:["4498"],                   category:"Administració" },
+  // Serveis generals
+  { name:"SEM",                         phones:["900101918"],              category:"Serveis" },
+  { name:"SAP",                         phones:["6200"],                   category:"Serveis" },
+  { name:"UBP",                         phones:["2201","4480"],            category:"Serveis" },
+  { name:"UDEN",                        phones:["2595","2225"],            category:"Serveis" },
+  { name:"ELECTROMED",                  phones:["4347"],                   category:"Serveis" },
+  { name:"INFORMÀTICA",                 phones:["2777","4444"],            category:"Serveis" },
+  { name:"MANTENIMENT",                 phones:["2348","4376"],            category:"Serveis" },
+  { name:"NETEJA",                      phones:["4448"],                   category:"Serveis" },
+  { name:"NETEJA MAQ. AÏLLATS",         phones:["4381"],                   category:"Serveis" },
+  { name:"CUINA",                       phones:["2406"],                   category:"Serveis" },
+  { name:"CAFETERIA PERSONAL",          phones:["2403"],                   category:"Serveis" },
+  { name:"CAFETERIA PÚBLICA",           phones:["2562"],                   category:"Serveis" },
+  { name:"PREVENTIVA",                  phones:["2492"],                   category:"Serveis" },
+  { name:"MAGATZEM",                    phones:["2223"],                   category:"Serveis" },
+  { name:"ESTERILITZACIÓ",              phones:["2470"],                   category:"Serveis" },
+  { name:"ISABEL (HOTELERIA)",          phones:["4341"],                   category:"Serveis" },
+  { name:"LOGARITME",                   phones:["2779"],                   category:"Serveis" },
+  { name:"SANTI DONACIÓ",               phones:["4558"],                   category:"Serveis" },
+  { name:"SALUT PÚBLICA (matí)",        phones:["872480828"],              category:"Serveis" },
+  { name:"SUVEC",                       phones:["627480828"],              category:"Serveis" },
+  { name:"SERVEI RELIGIÓS",             phones:["4366"],                   category:"Serveis" },
+  { name:"INTÈRPRET",                   phones:["6163","6155"],            category:"Serveis" },
+  { name:"TREBALL SOCIAL",              phones:["4343","4365"],            category:"Serveis" },
+  { name:"PROA / INFECCIOSES",          phones:["4339"],                   category:"Serveis" },
+  // Seguretat
+  { name:"SEGURETAT",                   phones:["4342","4392","2355"],     category:"Seguretat" },
+  { name:"SEGURETAT TRIATGE",           phones:["4496"],                   category:"Seguretat" },
+  // Emergències
+  { name:"INCENDIS",                    phones:["2626"],                   category:"Emergències" },
+  { name:"AGRESSIÓ",                    phones:["#2702"],                  category:"Emergències" },
+  { name:"CATÀSTROFES",                 phones:["2297"],                   category:"Emergències" },
+  { name:"CODI PPT 0",                  phones:["#2728"],                  category:"Emergències" },
+  { name:"CODI PPT 1",                  phones:["#2703"],                  category:"Emergències" },
+];
+
+// ─── State ─────────────────────────────────────────────────────────────────────
+let activeCat   = 'Totes';
+let query       = '';
+let editTarget  = null;
+let userCards   = [];
+let overrides   = {};
+
+try { userCards  = JSON.parse(localStorage.getItem('agenda_user')      || '[]'); } catch {}
+try { overrides  = JSON.parse(localStorage.getItem('agenda_overrides') || '{}'); } catch {}
+
+function allData() {
+  const bi = builtinData.map((d, i) =>
+    overrides[i] ? { ...overrides[i], _bi: i, _edited: true } : { ...d, _bi: i }
+  );
+  const uc = userCards.map((d, i) => ({ ...d, _ui: i }));
+  return [...bi, ...uc];
+}
+
+// ─── Utils ─────────────────────────────────────────────────────────────────────
+const norm = t => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[·.\-\/\s]+/g,' ').trim();
+const esc  = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function matches(item, q) {
+  if (!q) return true;
+  const nq = norm(q);
+  if (norm(item.name).includes(nq)) return true;
+  if (norm(item.category).includes(nq)) return true;
+  if (item.note && norm(item.note).includes(nq)) return true;
+  const qd = q.replace(/\D/g,'');
+  if (qd.length >= 2 && item.phones.some(p => p.replace(/\D/g,'').includes(qd))) return true;
+  return false;
+}
+
+function highlight(text, q) {
+  if (!q) return esc(text);
+  const nt = norm(text), nq = norm(q);
+  const i = nt.indexOf(nq);
+  if (i < 0) return esc(text);
+  return esc(text.slice(0,i)) + '<span class="hl">' + esc(text.slice(i, i+q.length)) + '</span>' + esc(text.slice(i+q.length));
+}
+
+function catColor(cat) {
+  return (CAT_CONFIG[cat] || {}).color || '#8b949e';
+}
+
+// ─── Categories ────────────────────────────────────────────────────────────────
+function getCats() {
+  const present = new Set(allData().map(d => d.category));
+  const ordered = CAT_ORDER.filter(c => c === 'Totes' || present.has(c));
+  allData().forEach(d => { if (!ordered.includes(d.category)) ordered.push(d.category); });
+  return ordered;
+}
+
+function catCount(cat) {
+  return cat === 'Totes' ? allData().length : allData().filter(d => d.category === cat).length;
+}
+
+function renderCats() {
+  const bar = document.getElementById('catBar');
+  bar.innerHTML = getCats().map(c => {
+    const cfg = CAT_CONFIG[c] || { icon: '📁', color: '#8b949e' };
+    return `<button class="cat-pill ${c===activeCat?'active':''}" data-cat="${esc(c)}">
+      <span class="cat-icon">${cfg.icon}</span>
+      ${esc(c)}
+      <span class="cat-count">${catCount(c)}</span>
+    </button>`;
+  }).join('');
+
+  const active = bar.querySelector('.active');
+  if (active) active.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+
+  const fCat = document.getElementById('fCat');
+  const prev = fCat.value;
+  fCat.innerHTML = getCats().filter(c => c !== 'Totes').map(c =>
+    `<option value="${esc(c)}">${esc(c)}</option>`
+  ).join('') + `<option value="__new__">＋ Nova categoria…</option>`;
+  if (prev && [...fCat.options].some(o => o.value === prev)) fCat.value = prev;
+}
+
+// ─── Grid ──────────────────────────────────────────────────────────────────────
+function renderGrid() {
+  const items = allData().filter(d =>
+    (activeCat === 'Totes' || d.category === activeCat) && matches(d, query)
+  );
+  const n = items.length;
+  document.getElementById('statsBar').textContent = `${n} contacte${n !== 1 ? 's' : ''}`;
+
+  const grid = document.getElementById('grid');
+  if (!n) {
+    grid.innerHTML = `<div class="empty">
+      <span class="empty-icon">🔍</span>
+      <p>No s'han trobat resultats${query ? ` per "<strong>${esc(query)}</strong>"` : ''}</p>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = items.map(item => {
+    const isUser   = item._ui !== undefined;
+    const isEdited = !!item._edited;
+    const color    = catColor(item.category);
+
+    let cls = 'card';
+    if (isUser)   cls += ' user-card';
+    if (isEdited) cls += ' edited-card';
+
+    const phones = item.phones.map(p => {
+      const isSpecial = p.startsWith('#');
+      return `<span class="phone-chip${isSpecial?' special':''}" data-phone="${esc(p)}" role="button" tabindex="0" title="Copiar al porta-retalls">${esc(p)}</span>`;
+    }).join('');
+
+    const editAttr = isUser
+      ? `data-type="user" data-idx="${item._ui}"`
+      : `data-type="builtin" data-idx="${item._bi}"`;
+
+    let delBtn = '';
+    if (isUser) {
+      delBtn = `<button class="icon-btn del" data-idx="${item._ui}" aria-label="Eliminar" title="Eliminar">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+      </button>`;
+    } else if (isEdited) {
+      delBtn = `<button class="icon-btn restore" data-idx="${item._bi}" aria-label="Restaurar" title="Restaurar original">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      </button>`;
+    }
+
+    return `<article class="${cls}" style="--cat-color:${color}" role="listitem">
+      <div class="card-inner">
+        <div class="card-head">
+          <div class="card-name">${highlight(item.name, query)}</div>
+          <div class="card-meta">
+            <span class="cat-badge">${esc(item.category)}</span>
+            <div class="card-actions">
+              <button class="icon-btn edit" ${editAttr} aria-label="Editar" title="Editar">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              ${delBtn}
+            </div>
+          </div>
+        </div>
+        ${item.note ? `<div class="card-note">⏱ ${esc(item.note)}</div>` : ''}
+        <div class="phones">${phones}</div>
+      </div>
+    </article>`;
+  }).join('');
+
+  // Copy on tap
+  grid.querySelectorAll('.phone-chip').forEach(el => {
+    el.addEventListener('click', () => {
+      const p = el.dataset.phone;
+      const doCopy = () => {
+        el.classList.add('copied');
+        toast(`${p} copiat ✓`);
+        setTimeout(() => el.classList.remove('copied'), 1600);
+      };
+      navigator.clipboard.writeText(p).then(doCopy).catch(() => {
+        try {
+          const ta = Object.assign(document.createElement('textarea'), {
+            value: p, style: 'position:fixed;opacity:0'
+          });
+          document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+          document.body.removeChild(ta); doCopy();
+        } catch { toast('No s\'ha pogut copiar'); }
+      });
+    });
+  });
+
+  grid.querySelectorAll('.icon-btn.edit').forEach(btn =>
+    btn.addEventListener('click', () => openModal({ type: btn.dataset.type, idx: +btn.dataset.idx }))
+  );
+
+  grid.querySelectorAll('.icon-btn.del').forEach(btn =>
+    btn.addEventListener('click', () => {
+      const i = +btn.dataset.idx;
+      if (confirm(`Eliminar "${userCards[i].name}"?`)) {
+        userCards.splice(i, 1); saveAll(); renderAll();
+      }
+    })
+  );
+
+  grid.querySelectorAll('.icon-btn.restore').forEach(btn =>
+    btn.addEventListener('click', () => {
+      const i = +btn.dataset.idx;
+      if (confirm(`Restaurar "${builtinData[i].name}" als valors originals?`)) {
+        delete overrides[i]; saveAll(); renderAll();
+        toast(`"${builtinData[i].name}" restaurat ✓`);
+      }
+    })
+  );
+}
+
+function renderAll() { renderCats(); renderGrid(); }
+
+// ─── Search ────────────────────────────────────────────────────────────────────
+const debounce = (fn, ms = 150) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+const searchEl = document.getElementById('searchInput');
+const clearEl  = document.getElementById('clearBtn');
+
+searchEl.addEventListener('input', debounce(() => {
+  query = searchEl.value.trim();
+  clearEl.classList.toggle('visible', !!query);
+  renderGrid();
+}));
+clearEl.addEventListener('click', () => {
+  searchEl.value = ''; query = '';
+  clearEl.classList.remove('visible');
+  searchEl.focus(); renderGrid();
+});
+document.getElementById('catBar').addEventListener('click', e => {
+  const btn = e.target.closest('.cat-pill'); if (!btn) return;
+  activeCat = btn.dataset.cat; renderAll();
+});
+
+// ─── Modal ─────────────────────────────────────────────────────────────────────
+const backdrop   = document.getElementById('modalBackdrop');
+const fName      = document.getElementById('fName');
+const fPhone     = document.getElementById('fPhone');
+const fNote      = document.getElementById('fNote');
+const fCat       = document.getElementById('fCat');
+const modalTitle = document.getElementById('modalTitle');
+
+function openModal(target = null) {
+  editTarget = target;
+  if (target) {
+    const c = target.type === 'builtin'
+      ? (overrides[target.idx] || builtinData[target.idx])
+      : userCards[target.idx];
+    modalTitle.textContent = 'Editar contacte';
+    fName.value  = c.name;
+    fPhone.value = c.phones.join(' / ');
+    fNote.value  = c.note || '';
+    renderCats(); fCat.value = c.category;
+  } else {
+    modalTitle.textContent = 'Nou contacte';
+    fName.value = ''; fPhone.value = ''; fNote.value = '';
+    renderCats(); fCat.value = fCat.options[0]?.value || '';
+  }
+  backdrop.classList.add('open');
+  setTimeout(() => fName.focus(), 230);
+}
+function closeModal() { backdrop.classList.remove('open'); editTarget = null; }
+
+document.getElementById('addBtn').addEventListener('click', () => openModal(null));
+document.getElementById('cancelModal').addEventListener('click', closeModal);
+backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+fCat.addEventListener('change', () => {
+  if (fCat.value === '__new__') {
+    const nv = prompt('Nom de la nova categoria:');
+    if (nv?.trim()) {
+      const opt = Object.assign(document.createElement('option'), { value: nv.trim(), textContent: nv.trim() });
+      fCat.insertBefore(opt, fCat.lastElementChild);
+      fCat.value = nv.trim();
+    } else { fCat.value = fCat.options[0]?.value || ''; }
+  }
+});
+
+document.getElementById('saveModal').addEventListener('click', () => {
+  const name  = fName.value.trim().toUpperCase();
+  const raw   = fPhone.value.trim();
+  const note  = fNote.value.trim();
+  const cat   = fCat.value === '__new__' ? fCat.options[fCat.selectedIndex]?.text : fCat.value;
+  if (!name) { fName.focus(); toast('El nom és obligatori'); return; }
+  if (!raw)  { fPhone.focus(); toast('El número és obligatori'); return; }
+  const phones = raw.split(/[\/,]/).map(p => p.trim()).filter(Boolean);
+  const entry  = { name, phones, category: cat, ...(note ? { note } : {}) };
+
+  if (!editTarget) {
+    userCards.push(entry);
+    toast(`"${name}" afegit ✓`);
+  } else if (editTarget.type === 'builtin') {
+    overrides[editTarget.idx] = entry;
+    toast(`"${name}" actualitzat ✓`);
+  } else {
+    userCards[editTarget.idx] = entry;
+    toast(`"${name}" actualitzat ✓`);
+  }
+  saveAll(); closeModal(); renderAll();
+});
+
+function saveAll() {
+  try { localStorage.setItem('agenda_user',      JSON.stringify(userCards)); } catch {}
+  try { localStorage.setItem('agenda_overrides', JSON.stringify(overrides)); } catch {}
+}
+
+// ─── Toast ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ─── PWA install prompt ────────────────────────────────────────────────────────
+let deferredPrompt = null;
+const banner       = document.getElementById('installBanner');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!localStorage.getItem('pwa_dismissed')) {
+    banner.classList.add('visible');
+  }
+});
+
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  banner.classList.remove('visible');
+  if (outcome === 'accepted') toast('App instal·lada ✓');
+});
+
+document.getElementById('dismissInstall').addEventListener('click', () => {
+  banner.classList.remove('visible');
+  localStorage.setItem('pwa_dismissed', '1');
+});
+
+window.addEventListener('appinstalled', () => {
+  banner.classList.remove('visible');
+  deferredPrompt = null;
+});
+
+// ─── Service Worker ────────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+// ─── Init ──────────────────────────────────────────────────────────────────────
+renderAll();
+</script>
+</body>
+</html>
